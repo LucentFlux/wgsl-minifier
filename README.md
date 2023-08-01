@@ -6,5 +6,5 @@ To minify your WGSL shader, simply run the following:
 
 ```
 cargo install wgsl-minifier
-cargo wgsl-minifier path/to/your/shader.wgsl path/to/minified/output.wgsl
+wgsl-minifier path/to/your/shader.wgsl path/to/minified/output.wgsl
 ```
