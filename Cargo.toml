@@ -1,0 +1,17 @@
+[package]
+name = "wgsl-minifier"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "A command-line tool for minifying WGSL shaders."
+homepage = "https://github.com/LucentFlux/wgsl-minifier"
+repository = "https://github.com/LucentFlux/wgsl-minifier"
+readme = "README.md"
+keywords = ["gamedev", "graphics", "wgsl", "wgpu", "shader"]
+categories = ["game-development", "graphics"]
+include = ["/Cargo.toml", "/LICENSE", "/README.md", "/src/**"]
+
+[dependencies]
+naga = { version = "0.13", features = ["clone", "wgsl-in", "wgsl-out"] }
+clap = { version = "4.3", features = ["cargo"] }
+codespan-reporting = "0.11"
