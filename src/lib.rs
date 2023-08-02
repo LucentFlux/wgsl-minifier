@@ -90,7 +90,7 @@ fn remove_fn_identifiers(
 ///
 /// This method has to re-create the types arena, as changing the names may mean the types are no longer unique.
 ///
-/// Does not remove names on entry points.
+/// Does not remove names on entry points, or constants with overrides.
 pub fn remove_identifiers(module: &mut naga::Module) {
     let mut name_counter = 0;
 
@@ -104,7 +104,9 @@ pub fn remove_identifiers(module: &mut naga::Module) {
     module.types = new_types;
 
     for (_, constant) in module.constants.iter_mut() {
-        constant.name = Some(name_from_count(&mut name_counter));
+        if constant.r#override == naga::Override::None {
+            constant.name = Some(name_from_count(&mut name_counter));
+        }
         constant.ty = type_handle_mapping[&constant.ty];
     }
     for (_, global) in module.global_variables.iter_mut() {
