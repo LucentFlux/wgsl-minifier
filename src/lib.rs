@@ -1,3 +1,5 @@
+use regex::{Captures, Regex};
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 const FIRST_LETTERS: [char; 52] = [
@@ -121,38 +123,56 @@ pub fn remove_identifiers(module: &mut naga::Module) {
     }
 }
 
-/// Returns true only if the given character cannot be in an identifier. Returning false gives no information.
-fn non_identifier_char(c: char) -> bool {
-    match c {
-        '(' | ')' | '{' | '}' | '[' | ']' | '<' | '>' | ',' | '+' | '*' | '/' | '!' | '\\'
-        | '"' | '\'' | '|' | '=' | '^' | '&' | ';' | ':' | '?' | '%' | '@' | '#' | '~' | '.'
-        | '£' | '$' | '`' => true,
-        _ => false,
-    }
-}
-
-/// Removes all the whitespace it can in some wgsl sourcecode without joining any keywords or identifiers together.
+/// Removes all the characters it can in some wgsl sourcecode without joining any keywords or identifiers together.
 pub fn minify_wgsl_source_whitespace(src: &str) -> String {
+    let mut src = Cow::<'_, str>::Borrowed(src);
+
+    // Remove whitespace
     let mut new_src = String::new();
     let mut last_char = ' ';
-
     let mut chars = src.chars().peekable();
+    while let Some(current_char) = chars.next() {
+        let next_char = *chars.peek().unwrap_or(&' ');
 
-    while let Some(c) = chars.next() {
-        if c.is_whitespace() {
-            let next_char = chars.peek().unwrap_or(&' ');
-            if !last_char.is_whitespace()
-                && !non_identifier_char(*next_char)
-                && !non_identifier_char(last_char)
+        if current_char.is_whitespace() {
+            // Only keep whitespace if it separates identifiers
+            if unicode_ident::is_xid_continue(last_char)
+                && unicode_ident::is_xid_continue(next_char)
             {
                 new_src.push(' ');
                 last_char = ' ';
             }
-        } else {
-            new_src.push(c);
-            last_char = c;
+            continue;
         }
-    }
 
-    return new_src;
+        new_src.push(current_char);
+        last_char = current_char;
+    }
+    src = Cow::Owned(new_src);
+
+    // Anything of the form `,}` or `,)` or `,]` can have the comma removed
+    new_src = String::new();
+    chars = src.chars().peekable();
+    while let Some(current_char) = chars.next() {
+        let next_char = *chars.peek().unwrap_or(&' ');
+
+        if current_char == ',' && matches!(next_char, '}' | ')' | ']') {
+            continue;
+        }
+
+        new_src.push(current_char);
+    }
+    src = Cow::Owned(new_src);
+
+    // Get rid of `let _e1=d;return _e1;`
+    let re = Regex::new(r"let (_\w*)=([^;]*);return (_\w*)").unwrap();
+    let new_src = re.replace_all(&src, |caps: &Captures| {
+        if caps[1] == caps[3] {
+            format!("return {}", &caps[2])
+        } else {
+            caps[0].to_owned()
+        }
+    });
+
+    return new_src.to_string();
 }
