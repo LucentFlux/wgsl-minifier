@@ -35,9 +35,7 @@ fn main() {
     let input = match matches.get_one::<PathBuf>("input") {
         Some(input) => input,
         None => {
-            eprintln!(
-                "Example usage: `cargo wgsl-minify path/to/my/shader.wgsl path/to/my/output.wgsl`"
-            );
+            eprintln!("Example usage: `wgsl-minify path/to/my/shader.wgsl path/to/my/output.wgsl`");
             eprintln!("No input shader provided.");
             return;
         }
@@ -63,7 +61,10 @@ fn main() {
     let should_force = matches.get_flag("force");
     let output_path = std::path::Path::new(&output);
     if output_path.exists() && !should_force {
-        eprintln!("output file `{}` already exists", output_path.display());
+        eprintln!(
+            "output file `{}` already exists - force overwriting with the --force parameter",
+            output_path.display()
+        );
         return;
     }
 
