@@ -236,7 +236,7 @@ pub fn minify_wgsl_source(src: &str) -> String {
     // Get rid of `let _e1=d;..(_e1)..;`
     let re = Regex::new(r"let (_\w*)=([^;]*);([^;]*?)(_\w*)([^;]*);").unwrap();
     let new_src = re.replace_all(&src, |caps: &Captures| {
-        if caps[1] == caps[4] {
+        if caps[1] == caps[4] && !caps[5].contains(&caps[1]) {
             format!("{}{}{};", &caps[3], &caps[2], &caps[5])
         } else {
             caps[0].to_owned()
