@@ -233,9 +233,42 @@ pub fn minify_wgsl_source(src: &str) -> String {
     }
     src = Cow::Owned(new_src);
 
+    // Get rid of double parentheses
+    let mut parentheses = HashMap::new(); // Map from parenthesis starts to ends
+    let mut unclosed_stack = Vec::new();
+    for (i, c) in src.chars().enumerate() {
+        if c == '(' {
+            unclosed_stack.push(i);
+        } else if c == ')' {
+            let start = unclosed_stack.pop().expect("wgsl parentheses are balanced");
+            parentheses.insert(start, i);
+        }
+    }
+    assert!(unclosed_stack.is_empty());
+    new_src = String::new();
+    let mut to_drop_stack = Vec::new();
+    for (i, c) in src.chars().enumerate() {
+        if let Some(outer_end) = parentheses.get(&i) {
+            if let Some(inner_end) = parentheses.get(&(i + 1)) {
+                if *outer_end == *inner_end + 1 {
+                    to_drop_stack.push(*outer_end);
+                    continue;
+                }
+            }
+        }
+        if let Some(next_to_skip) = to_drop_stack.last() {
+            if *next_to_skip == i {
+                to_drop_stack.pop();
+                continue;
+            }
+        }
+        new_src.push(c);
+    }
+    src = Cow::Owned(new_src);
+
     // Get rid of `let _e1=d;..(_e1)..;`
     let re = Regex::new(r"let (_\w*)=([^;]*);([^;]*?)(_\w*)([^;]*);").unwrap();
-    let new_src = re.replace_all(&src, |caps: &Captures| {
+    let src = re.replace_all(&src, |caps: &Captures| {
         if caps[1] == caps[4] && !caps[5].contains(&caps[1]) {
             format!("{}{}{};", &caps[3], &caps[2], &caps[5])
         } else {
@@ -243,5 +276,5 @@ pub fn minify_wgsl_source(src: &str) -> String {
         }
     });
 
-    return new_src.to_string();
+    return src.to_string();
 }
