@@ -9,7 +9,7 @@ use codespan_reporting::{
         termcolor::{ColorChoice, StandardStream},
     },
 };
-use wgsl_minifier::{minify_wgsl_source_whitespace, remove_identifiers};
+use wgsl_minifier::{minify_module, minify_wgsl_source};
 fn main() {
     let matches = command!()
         .arg(
@@ -113,7 +113,7 @@ fn main() {
     }
 
     // Now minify!
-    remove_identifiers(&mut module);
+    minify_module(&mut module);
 
     // Write to string
     let mut validator = naga::valid::Validator::new(
@@ -129,7 +129,7 @@ fn main() {
             .expect("if was representable in wgsl, should still be representable in wgsl");
 
     // Minify string
-    let output = minify_wgsl_source_whitespace(&output);
+    let output = minify_wgsl_source(&output);
 
     // Sanity check
     let mut validator = naga::valid::Validator::new(

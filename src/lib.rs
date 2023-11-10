@@ -88,12 +88,7 @@ fn remove_fn_identifiers(
     function.named_expressions.clear();
 }
 
-/// Iterates through all objects in a module and re-generates any names or identifiers to smaller ones.
-///
-/// This method has to re-create the types arena, as changing the names may mean the types are no longer unique.
-///
-/// Does not remove names on entry points, or constants with overrides.
-pub fn remove_identifiers(module: &mut naga::Module) {
+fn remove_identifiers(module: &mut naga::Module) {
     let mut name_counter = 0;
 
     let mut new_types = naga::UniqueArena::new();
@@ -107,7 +102,7 @@ pub fn remove_identifiers(module: &mut naga::Module) {
 
     for (_, constant) in module.constants.iter_mut() {
         if constant.r#override == naga::Override::None {
-            constant.name = Some(name_from_count(&mut name_counter));
+            constant.name = None;
         }
         constant.ty = type_handle_mapping[&constant.ty];
     }
@@ -123,8 +118,80 @@ pub fn remove_identifiers(module: &mut naga::Module) {
     }
 }
 
+fn generate_spv_source(module: &naga::Module) -> Option<Vec<u32>> {
+    // Validate
+    let module_info = naga::valid::Validator::new(
+        naga::valid::ValidationFlags::empty(),
+        naga::valid::Capabilities::all(),
+    )
+    .validate(&module)
+    .ok()?;
+
+    // Write
+    let mut writer = naga::back::spv::Writer::new(&Default::default()).ok()?;
+
+    let mut words = Vec::new();
+    writer
+        .write(module, &module_info, None, &None, &mut words)
+        .ok()?;
+
+    Some(words)
+}
+
+fn perform_spirv_tools_opt_passes(module: &naga::Module) -> Option<naga::Module> {
+    use spirv_tools::opt::Optimizer;
+
+    // Convert to spir-v
+    let words = generate_spv_source(module)?;
+
+    // Then optimise the spir-v
+    let mut opt = spirv_tools::opt::create(None);
+    opt.register_performance_passes();
+    opt.register_size_passes();
+    let optimised = opt
+        .optimize(
+            words,
+            &mut |message| log::debug!("spirv-opt message: {:?}", message),
+            Some(spirv_tools::opt::Options {
+                validator_options: None,
+                preserve_bindings: true,
+                preserve_spec_constants: true,
+                ..Default::default()
+            }),
+        )
+        .ok()?;
+
+    // Then re-parse
+    let module =
+        naga::front::spv::parse_u8_slice(optimised.as_bytes(), &Default::default()).ok()?;
+
+    return Some(module);
+}
+
+/// Performs minification on a naga module, removing dead code and changing any names or identifiers to smaller ones.
+///
+/// This method has to re-create the types arena, as changing the names may mean the types are no longer unique.
+///
+/// Does not remove names on entry points, or on constants with overrides.
+pub fn minify_module(module: &mut naga::Module) {
+    // Try to optimise with spirv-opt
+    let opt_module = perform_spirv_tools_opt_passes(module);
+    if let Some(opt_module) = opt_module {
+        *module = opt_module
+    } else {
+        eprintln!("failed to run spirv-opt on shader");
+    };
+
+    // Remove any remaining identifiers
+    remove_identifiers(module);
+}
+
+fn is_numeric(c: char) -> bool {
+    return c >= '0' && c <= '9';
+}
+
 /// Removes all the characters it can in some wgsl sourcecode without joining any keywords or identifiers together.
-pub fn minify_wgsl_source_whitespace(src: &str) -> String {
+pub fn minify_wgsl_source(src: &str) -> String {
     let mut src = Cow::<'_, str>::Borrowed(src);
 
     // Remove whitespace
@@ -135,9 +202,11 @@ pub fn minify_wgsl_source_whitespace(src: &str) -> String {
         let next_char = *chars.peek().unwrap_or(&' ');
 
         if current_char.is_whitespace() {
-            // Only keep whitespace if it separates identifiers
-            if unicode_ident::is_xid_continue(last_char)
-                && unicode_ident::is_xid_continue(next_char)
+            // Only keep whitespace if it separates identifiers,
+            // or separates a hyphen from a literal (since older versions of the spec require whitespace)
+            if (unicode_ident::is_xid_continue(last_char)
+                && unicode_ident::is_xid_continue(next_char))
+                || (last_char == '-' && (is_numeric(next_char) || next_char == '.'))
             {
                 new_src.push(' ');
                 last_char = ' ';
@@ -164,11 +233,11 @@ pub fn minify_wgsl_source_whitespace(src: &str) -> String {
     }
     src = Cow::Owned(new_src);
 
-    // Get rid of `let _e1=d;return _e1;`
-    let re = Regex::new(r"let (_\w*)=([^;]*);return (_\w*)").unwrap();
+    // Get rid of `let _e1=d;..(_e1)..;`
+    let re = Regex::new(r"let (_\w*)=([^;]*);([^;]*?)(_\w*)([^;]*);").unwrap();
     let new_src = re.replace_all(&src, |caps: &Captures| {
-        if caps[1] == caps[3] {
-            format!("return {}", &caps[2])
+        if caps[1] == caps[4] {
+            format!("{}{}{};", &caps[3], &caps[2], &caps[5])
         } else {
             caps[0].to_owned()
         }

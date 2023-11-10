@@ -4,7 +4,7 @@ fn minify(input_shader: &str) -> String {
     let mut module = naga::front::wgsl::parse_str(&input_shader).unwrap();
 
     // Now minify!
-    remove_identifiers(&mut module);
+    minify_module(&mut module);
 
     // Write to string
     let mut validator = naga::valid::Validator::new(
@@ -18,7 +18,7 @@ fn minify(input_shader: &str) -> String {
             .unwrap();
 
     // Minify string
-    minify_wgsl_source_whitespace(&output)
+    minify_wgsl_source(&output)
 }
 
 #[test]
@@ -39,7 +39,7 @@ fn minify_1() {
         return out;
     }
     ";
-    let expected = "struct a{@builtin(position)B:vec4<f32>}@vertex fn vs_main(@builtin(vertex_index)E:u32)->a{var d:a;d.B=vec4<f32>((f32((1-i32(E)))*0.5),(f32(((i32((E&1u))*2)-1))*0.5),0.0,1.0);return d;}";
+    let expected = "var<private>d:u32;var<private>E:vec4<f32>=vec4<f32>(0.0,0.0,0.0,1.0);fn e(){E=vec4<f32>((f32((1-bitcast<i32>(d)))*0.5),(f32(((bitcast<i32>((_e8&1u))*2)- 1))*0.5),0.0,1.0);E[1u]=-(E[1u]);return;}@vertex fn vs_main(@builtin(vertex_index)f:u32)->@builtin(position)vec4<f32>{d=f;e();E.y=-(E.y);return E;}";
 
     let got = minify(src);
 
