@@ -39,7 +39,7 @@ fn minify_1() {
         return out;
     }
     ";
-    let expected = "var<private>d:u32;var<private>E:vec4<f32>=vec4<f32>(0.0,0.0,0.0,1.0);fn e(){E=vec4<f32>((f32((1-bitcast<i32>(d)))*0.5),(f32(((bitcast<i32>((_e8&1u))*2)- 1))*0.5),0.0,1.0);E[1u]=-(E[1u]);return;}@vertex fn vs_main(@builtin(vertex_index)f:u32)->@builtin(position)vec4<f32>{d=f;e();E.y=-(E.y);return E;}";
+    let expected = "var<private>d:u32;var<private>E:vec4<f32>=vec4<f32>(0.0,0.0,0.0,1.0);fn e(){let _e8=d;E=vec4<f32>((f32(1-bitcast<i32>(_e8))*0.5),(f32((bitcast<i32>(_e8&1u)*2)- 1)*0.5),0.0,1.0);E[1u]=-(E[1u]);return;}@vertex fn vs_main(@builtin(vertex_index)f:u32)->@builtin(position)vec4<f32>{d=f;e();E.y=-(E.y);return E;}";
 
     let got = minify(src);
 
