@@ -43,7 +43,7 @@ fn minify_1() {
         return out;
     }
     ";
-    let expected = "var<private>d:u32;var<private>E:vec4<f32>=vec4<f32>(0.0,0.0,0.0,1.0);fn e(){let _e8=d;E=vec4<f32>((f32(1-bitcast<i32>(_e8))*0.5),(f32((bitcast<i32>(_e8&1u)*2)- 1)*0.5),0.0,1.0);E[1u]=-(E[1u]);return;}@vertex fn vs_main(@builtin(vertex_index)f:u32)->@builtin(position)vec4<f32>{d=f;e();E.y=-(E.y);return E;}";
+    let expected = "struct a{@builtin(position)B:vec4<f32>}fn D(d:u32,E:u32)->u32{return(countOneBits(d)+E);}@vertex fn vs_main(@builtin(vertex_index)f:u32)->a{var F:a;F.B=vec4<f32>((f32(1-i32(f))*0.5),(f32((i32(f&1u)*2)- 1)*0.5),0.0,1.0);let _e22=F;return _e22;}";
 
     let got = minify(src);
 
@@ -79,7 +79,7 @@ fn minify_2() {
         do_work(global_id);
     }
     ";
-    let expected = "struct a{B:u32,b:u32,C:u32}struct D{d:array<a>}@group(2)@binding(0)var<storage>g:D;var<private>H:vec3<u32>;fn h(){if(H.x==0u){return;}let _e8=(_e5.x- 1u);g.d[_e8]=a(_e8,(_e5.x+1u),(_e5.x*4u));return;}@compute@workgroup_size(256,1,1)fn comp_main(@builtin(global_invocation_id)i:vec3<u32>){H=i;h();}";
+    let expected = "struct a{B:u32,b:u32,C:u32}struct D{d:array<a>}@group(2)@binding(0)var<storage>e:D;fn F(f:vec3<u32>){e.d[(f.x- 1u)]=a((f.x- 1u),(f.x+1u),(f.x*4u));return;}@compute@workgroup_size(256,1,1)fn comp_main(@builtin(global_invocation_id)g:vec3<u32>){if(g.x==0u){return;}F(g);return;}";
 
     let got = minify(src);
 

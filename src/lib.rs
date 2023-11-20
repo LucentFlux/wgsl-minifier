@@ -1,4 +1,3 @@
-use regex::{Captures, Regex};
 use std::borrow::Cow;
 use std::collections::HashMap;
 
@@ -118,105 +117,12 @@ fn remove_identifiers(module: &mut naga::Module) {
     }
 }
 
-fn generate_spv_source(module: &naga::Module) -> Option<Vec<u32>> {
-    // Validate
-    let module_info = naga::valid::Validator::new(
-        naga::valid::ValidationFlags::empty(),
-        naga::valid::Capabilities::all(),
-    )
-    .validate(&module)
-    .ok()?;
-
-    // Write
-    let mut writer = naga::back::spv::Writer::new(&Default::default()).ok()?;
-
-    let mut words = Vec::new();
-    writer
-        .write(module, &module_info, None, &None, &mut words)
-        .ok()?;
-
-    Some(words)
-}
-
-/// Taken from [`RegisterSizePasses`](https://github.com/KhronosGroup/SPIRV-Tools/blob/main/source/opt/optimizer.cpp)
-/// with some changes to reflect WGSL vs SPIRV size factors.
-fn perform_spirv_tools_opt_passes(module: &naga::Module) -> Option<naga::Module> {
-    use spirv_tools::opt::Optimizer;
-
-    // Convert to spir-v
-    let words = generate_spv_source(module)?;
-
-    // Then optimise the spir-v
-    let mut opt = spirv_tools::opt::create(None);
-
-    opt.register_pass(spirv_tools::opt::Passes::WrapOpKill);
-    opt.register_pass(spirv_tools::opt::Passes::DeadBranchElim);
-    //opt.register_pass(spirv_tools::opt::Passes::MergeReturn);
-    opt.register_pass(spirv_tools::opt::Passes::InlineExhaustive);
-    opt.register_pass(spirv_tools::opt::Passes::EliminateDeadFunctions);
-    //opt.register_pass(spirv_tools::opt::Passes::PrivateToLocal);
-    //opt.register_pass(spirv_tools::opt::Passes::ScalarReplacementPass(0));
-    //opt.register_pass(spirv_tools::opt::Passes::LocalMultiStoreElim);
-    opt.register_pass(spirv_tools::opt::Passes::ConditionalConstantPropagation);
-    //opt.register_pass(spirv_tools::opt::Passes::LoopUnrollPass(true));
-    opt.register_pass(spirv_tools::opt::Passes::DeadBranchElim);
-    opt.register_pass(spirv_tools::opt::Passes::Simplification);
-    //opt.register_pass(spirv_tools::opt::Passes::ScalarReplacementPass(0));
-    //opt.register_pass(spirv_tools::opt::Passes::LocalSingleStoreElim);
-    opt.register_pass(spirv_tools::opt::Passes::IfConversion);
-    opt.register_pass(spirv_tools::opt::Passes::Simplification);
-    opt.register_pass(spirv_tools::opt::Passes::AggressiveDCE);
-    opt.register_pass(spirv_tools::opt::Passes::DeadBranchElim);
-    opt.register_pass(spirv_tools::opt::Passes::BlockMerge);
-    opt.register_pass(spirv_tools::opt::Passes::LocalAccessChainConvert);
-    opt.register_pass(spirv_tools::opt::Passes::LocalSingleBlockLoadStoreElim);
-    opt.register_pass(spirv_tools::opt::Passes::AggressiveDCE);
-    opt.register_pass(spirv_tools::opt::Passes::CopyPropagateArrays);
-    opt.register_pass(spirv_tools::opt::Passes::VectorDCE);
-    opt.register_pass(spirv_tools::opt::Passes::DeadInsertElim);
-    opt.register_pass(spirv_tools::opt::Passes::EliminateDeadMembers);
-    //opt.register_pass(spirv_tools::opt::Passes::LocalSingleStoreElim);
-    opt.register_pass(spirv_tools::opt::Passes::BlockMerge);
-    //opt.register_pass(spirv_tools::opt::Passes::LocalMultiStoreElim);
-    opt.register_pass(spirv_tools::opt::Passes::RedundancyElimination);
-    opt.register_pass(spirv_tools::opt::Passes::Simplification);
-    opt.register_pass(spirv_tools::opt::Passes::AggressiveDCE);
-    opt.register_pass(spirv_tools::opt::Passes::CFGCleanup);
-
-    let optimised = opt
-        .optimize(
-            words,
-            &mut |message| log::debug!("spirv-opt message: {:?}", message),
-            Some(spirv_tools::opt::Options {
-                validator_options: None,
-                preserve_bindings: true,
-                preserve_spec_constants: true,
-                ..Default::default()
-            }),
-        )
-        .ok()?;
-
-    // Then re-parse
-    let module =
-        naga::front::spv::parse_u8_slice(optimised.as_bytes(), &Default::default()).ok()?;
-
-    return Some(module);
-}
-
-/// Performs minification on a naga module, removing dead code and changing any names or identifiers to smaller ones.
+/// Performs minification on a naga module, changing any names or identifiers to smaller ones.
 ///
 /// This method has to re-create the types arena, as changing the names may mean the types are no longer unique.
 ///
 /// Does not remove names on entry points, or on constants with overrides.
 pub fn minify_module(module: &mut naga::Module) {
-    // Try to optimise with spirv-opt
-    let opt_module = perform_spirv_tools_opt_passes(module);
-    if let Some(opt_module) = opt_module {
-        *module = opt_module
-    } else {
-        eprintln!("failed to run spirv-opt on shader");
-    };
-
     // Remove any remaining identifiers
     remove_identifiers(module);
 }
@@ -300,16 +206,6 @@ pub fn minify_wgsl_source(src: &str) -> String {
         new_src.push(c);
     }
     src = Cow::Owned(new_src);
-
-    // Get rid of `let _e1=d;..(_e1)..;`
-    let re = Regex::new(r"let (_\w*)=([^;]*);([^;]*?)(_\w*)([^;]*);").unwrap();
-    let src = re.replace_all(&src, |caps: &Captures| {
-        if caps[1] == caps[4] && !caps[5].contains(&caps[1]) {
-            format!("{}{}{};", &caps[3], &caps[2], &caps[5])
-        } else {
-            caps[0].to_owned()
-        }
-    });
 
     return src.to_string();
 }

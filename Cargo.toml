@@ -1,6 +1,6 @@
 [package]
 name = "wgsl-minifier"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 license = "MIT"
 description = "A command-line tool for minifying WGSL shaders."
@@ -17,7 +17,3 @@ clap = { version = "4.3", features = ["cargo"] }
 codespan-reporting = "0.11"
 unicode-ident = "1.0"
 regex = "1.10"
-log = "0.4"
-spirv-tools = { version = "0.9", features = [
-    "use-compiled-tools",
-] }
