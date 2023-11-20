@@ -138,6 +138,8 @@ fn generate_spv_source(module: &naga::Module) -> Option<Vec<u32>> {
     Some(words)
 }
 
+/// Taken from [`RegisterSizePasses`](https://github.com/KhronosGroup/SPIRV-Tools/blob/main/source/opt/optimizer.cpp)
+/// with some changes to reflect WGSL vs SPIRV size factors.
 fn perform_spirv_tools_opt_passes(module: &naga::Module) -> Option<naga::Module> {
     use spirv_tools::opt::Optimizer;
 
@@ -146,8 +148,41 @@ fn perform_spirv_tools_opt_passes(module: &naga::Module) -> Option<naga::Module>
 
     // Then optimise the spir-v
     let mut opt = spirv_tools::opt::create(None);
-    opt.register_performance_passes();
-    opt.register_size_passes();
+
+    opt.register_pass(spirv_tools::opt::Passes::WrapOpKill);
+    opt.register_pass(spirv_tools::opt::Passes::DeadBranchElim);
+    //opt.register_pass(spirv_tools::opt::Passes::MergeReturn);
+    opt.register_pass(spirv_tools::opt::Passes::InlineExhaustive);
+    opt.register_pass(spirv_tools::opt::Passes::EliminateDeadFunctions);
+    //opt.register_pass(spirv_tools::opt::Passes::PrivateToLocal);
+    //opt.register_pass(spirv_tools::opt::Passes::ScalarReplacementPass(0));
+    //opt.register_pass(spirv_tools::opt::Passes::LocalMultiStoreElim);
+    opt.register_pass(spirv_tools::opt::Passes::ConditionalConstantPropagation);
+    //opt.register_pass(spirv_tools::opt::Passes::LoopUnrollPass(true));
+    opt.register_pass(spirv_tools::opt::Passes::DeadBranchElim);
+    opt.register_pass(spirv_tools::opt::Passes::Simplification);
+    //opt.register_pass(spirv_tools::opt::Passes::ScalarReplacementPass(0));
+    //opt.register_pass(spirv_tools::opt::Passes::LocalSingleStoreElim);
+    opt.register_pass(spirv_tools::opt::Passes::IfConversion);
+    opt.register_pass(spirv_tools::opt::Passes::Simplification);
+    opt.register_pass(spirv_tools::opt::Passes::AggressiveDCE);
+    opt.register_pass(spirv_tools::opt::Passes::DeadBranchElim);
+    opt.register_pass(spirv_tools::opt::Passes::BlockMerge);
+    opt.register_pass(spirv_tools::opt::Passes::LocalAccessChainConvert);
+    opt.register_pass(spirv_tools::opt::Passes::LocalSingleBlockLoadStoreElim);
+    opt.register_pass(spirv_tools::opt::Passes::AggressiveDCE);
+    opt.register_pass(spirv_tools::opt::Passes::CopyPropagateArrays);
+    opt.register_pass(spirv_tools::opt::Passes::VectorDCE);
+    opt.register_pass(spirv_tools::opt::Passes::DeadInsertElim);
+    opt.register_pass(spirv_tools::opt::Passes::EliminateDeadMembers);
+    //opt.register_pass(spirv_tools::opt::Passes::LocalSingleStoreElim);
+    opt.register_pass(spirv_tools::opt::Passes::BlockMerge);
+    //opt.register_pass(spirv_tools::opt::Passes::LocalMultiStoreElim);
+    opt.register_pass(spirv_tools::opt::Passes::RedundancyElimination);
+    opt.register_pass(spirv_tools::opt::Passes::Simplification);
+    opt.register_pass(spirv_tools::opt::Passes::AggressiveDCE);
+    opt.register_pass(spirv_tools::opt::Passes::CFGCleanup);
+
     let optimised = opt
         .optimize(
             words,
