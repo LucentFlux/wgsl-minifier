@@ -76,7 +76,7 @@ fn main() {
     let mut module = match naga::front::wgsl::parse_str(&input_shader) {
         Ok(module) => module,
         Err(e) => {
-            e.emit_to_stderr_with_path(&input_file_name, &input.to_string_lossy());
+            e.emit_to_stderr_with_path(&input_file_name, &*input.to_string_lossy());
             eprintln!("failed to parse shader");
             return;
         }

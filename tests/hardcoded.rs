@@ -43,7 +43,7 @@ fn minify_1() {
         return out;
     }
     ";
-    let expected = "struct a{@builtin(position)B:vec4<f32>}fn D(d:u32,E:u32)->u32{return(countOneBits(d)+E);}@vertex fn vs_main(@builtin(vertex_index)f:u32)->a{var F:a;F.B=vec4<f32>((f32(1-i32(f))*0.5),(f32((i32(f&1u)*2)- 1)*0.5),0.0,1.0);let _e22=F;return _e22;}";
+    let expected = "struct a{@builtin(position)B:vec4<f32>}fn C(c:u32,D:u32)->u32{return(countOneBits(c)+D);}@vertex fn vs_main(@builtin(vertex_index)e:u32)->a{var E:a;E.B=vec4<f32>((f32(1i-i32(e))*0.5f),(f32((i32(e&1u)*2i)- 1i)*0.5f),0f,1f);let _e22=E;return _e22;}";
 
     let got = minify(src);
 
@@ -62,7 +62,7 @@ fn minify_2() {
         elements: array<OutputElement>,
     }
 
-    @group(2) @binding(0) var<storage, read> output: Output;
+    @group(2) @binding(0) var<storage, read_write> output: Output;
 
     fn do_work(global_id: vec3<u32>) {
         output.elements[global_id.x - 1u] = OutputElement(global_id.x - 1u, global_id.x + 1u, global_id.x * 4u);
@@ -79,7 +79,7 @@ fn minify_2() {
         do_work(global_id);
     }
     ";
-    let expected = "struct a{B:u32,b:u32,C:u32}struct D{d:array<a>}@group(2)@binding(0)var<storage>e:D;fn F(f:vec3<u32>){e.d[(f.x- 1u)]=a((f.x- 1u),(f.x+1u),(f.x*4u));return;}@compute@workgroup_size(256,1,1)fn comp_main(@builtin(global_invocation_id)g:vec3<u32>){if(g.x==0u){return;}F(g);return;}";
+    let expected = "struct a{B:u32,b:u32,C:u32}struct D{d:array<a>}@group(2)@binding(0)var<storage,read_write>e:D;fn F(f:vec3<u32>){e.d[(f.x- 1u)]=a((f.x- 1u),(f.x+1u),(f.x*4u));return;}@compute@workgroup_size(256,1,1)fn comp_main(@builtin(global_invocation_id)g:vec3<u32>){if(g.x==0u){return;}F(g);return;}";
 
     let got = minify(src);
 
