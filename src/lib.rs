@@ -21,8 +21,8 @@ fn name_from_count(count: &mut usize) -> String {
     id /= FIRST_LETTERS.len();
 
     while id != 0 {
-        name += &NEXT_LETTERS[id % NEXT_LETTERS.len()].to_string();
-        id /= FIRST_LETTERS.len();
+        name.push(NEXT_LETTERS[id % NEXT_LETTERS.len()]);
+        id /= NEXT_LETTERS.len();
     }
 
     name
