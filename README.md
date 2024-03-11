@@ -8,7 +8,29 @@ A small tool built on top of [Naga](https://github.com/gfx-rs/naga) that makes W
 # Usage
 To minify your WGSL shader, simply run the following:
 
-```
+```bash
 cargo install wgsl-minifier
 wgsl-minifier path/to/your/shader.wgsl path/to/minified/output.wgsl
+```
+
+# As a library
+
+To use this crate as a library, for example in a game engine or larger preprocessor, two calls must be made. The first strips identifiers to smaller ones where possible. The second removes unnecessary whitespace, commas, and parentheses in a source string:
+
+```rust
+let mut module = /* your source here, or */ naga::Module::default();
+
+// Now minify!
+wgsl_minifier::minify_module(&mut module);
+
+// Write to WGSL string
+let mut validator = naga::valid::Validator::new(
+    naga::valid::ValidationFlags::all(),
+    naga::valid::Capabilities::all(),
+);
+let info = validator.validate(&module).unwrap();
+let output = naga::back::wgsl::write_string(&module, &info, naga::back::wgsl::WriterFlags::empty()).unwrap();
+
+// Minify string
+let output = wgsl_minifier::minify_wgsl_source(&output);
 ```
