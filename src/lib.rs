@@ -136,7 +136,7 @@ pub fn minify_module(module: &mut naga::Module) {
 }
 
 fn is_numeric(c: char) -> bool {
-    return c >= '0' && c <= '9';
+    c.is_ascii_digit()
 }
 
 /// Removes all the characters it can in some wgsl sourcecode without joining any keywords or identifiers together.
@@ -215,5 +215,5 @@ pub fn minify_wgsl_source(src: &str) -> String {
     }
     src = Cow::Owned(new_src);
 
-    return src.to_string();
+    src.to_string()
 }

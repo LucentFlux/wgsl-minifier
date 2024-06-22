@@ -147,6 +147,5 @@ fn main() {
             output_path.display(),
             e
         );
-        return;
     }
 }
