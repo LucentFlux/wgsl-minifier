@@ -103,7 +103,10 @@ fn remove_identifiers(module: &mut naga::Module) {
     module.types = new_types;
 
     for (_, constant) in module.constants.iter_mut() {
-        if constant.r#override == naga::Override::None {
+        if !matches!(
+            module.global_expressions.try_get(constant.init).unwrap(),
+            naga::Expression::Override(_)
+        ) {
             constant.name = None;
         }
         constant.ty = type_handle_mapping[&constant.ty];
