@@ -1,7 +1,7 @@
 use wgsl_minifier::*;
 
 fn minify(input_shader: &str) -> String {
-    let mut module = naga::front::wgsl::parse_str(&input_shader).unwrap();
+    let mut module = naga::front::wgsl::parse_str(input_shader).unwrap();
 
     // Now minify!
     minify_module(&mut module);
