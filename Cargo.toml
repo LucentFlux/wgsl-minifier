@@ -12,7 +12,7 @@ categories = ["game-development", "graphics"]
 include = ["/Cargo.toml", "/LICENSE", "/README.md", "/src/**"]
 
 [dependencies]
-naga = { version = "22.1.0", features = ["wgsl-in", "wgsl-out"] } # Breaking change to update - API takes Naga module
+naga = { version = "23.0.0", features = ["wgsl-in", "wgsl-out"] } # Breaking change to update - API takes Naga module
 unicode-ident = "1.0"
 
 # Used for main
