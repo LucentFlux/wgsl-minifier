@@ -9,7 +9,7 @@ A small tool built on top of [Naga](https://github.com/gfx-rs/naga) that makes W
 To minify your WGSL shader, simply run the following:
 
 ```bash
-cargo install wgsl-minifier
+cargo install --features 'bin' wgsl-minifier
 wgsl-minifier path/to/your/shader.wgsl path/to/minified/output.wgsl
 ```
 
