@@ -21,7 +21,7 @@ To use this crate as a library, for example in a game engine or larger preproces
 let mut module = /* your source here, or */ naga::Module::default();
 
 // Now minify!
-wgsl_minifier::minify_module(&mut module);
+wgsl_minifier::minify_module(&mut module, wgsl_minifier::KeepUnused::No);
 
 // Write to WGSL string
 let mut validator = naga::valid::Validator::new(

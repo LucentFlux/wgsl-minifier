@@ -4,7 +4,7 @@ fn minify(input_shader: &str) -> String {
     let mut module = naga::front::wgsl::parse_str(input_shader).unwrap();
 
     // Now minify!
-    minify_module(&mut module);
+    minify_module(&mut module, KeepUnused::Yes);
 
     // Write to string
     let mut validator = naga::valid::Validator::new(

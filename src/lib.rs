@@ -4,6 +4,9 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 
+/// Re-export of Naga's `KeepUnused` type.
+pub type KeepUnused = naga::compact::KeepUnused;
+
 const FIRST_LETTERS: [char; 52] = [
     'A', 'a', 'B', 'b', 'C', 'c', 'D', 'd', 'E', 'e', 'F', 'f', 'G', 'g', 'H', 'h', 'I', 'i', 'J',
     'j', 'K', 'k', 'L', 'l', 'M', 'm', 'N', 'n', 'O', 'o', 'P', 'p', 'Q', 'q', 'R', 'r', 'S', 's',
@@ -128,9 +131,9 @@ fn remove_identifiers(module: &mut naga::Module) {
 /// This method has to re-create the types arena, as changing the names may mean the types are no longer unique.
 ///
 /// Does not remove names on entry points, or on constants with overrides.
-pub fn minify_module(module: &mut naga::Module) {
+pub fn minify_module(module: &mut naga::Module, keep_unused: KeepUnused) {
     // Compact
-    naga::compact::compact(module);
+    naga::compact::compact(module, keep_unused);
     // Remove any remaining identifiers
     remove_identifiers(module);
 }

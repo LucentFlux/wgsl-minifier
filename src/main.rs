@@ -9,7 +9,7 @@ use codespan_reporting::{
         termcolor::{ColorChoice, StandardStream},
     },
 };
-use wgsl_minifier::{minify_module, minify_wgsl_source};
+use wgsl_minifier::{minify_module, minify_wgsl_source, KeepUnused};
 fn main() {
     let matches = command!()
         .arg(
@@ -113,7 +113,7 @@ fn main() {
     }
 
     // Now minify!
-    minify_module(&mut module);
+    minify_module(&mut module, KeepUnused::No);
 
     // Write to string
     let mut validator = naga::valid::Validator::new(
