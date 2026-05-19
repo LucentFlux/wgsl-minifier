@@ -14,11 +14,11 @@ categories = ["development-tools::build-utils", "game-development", "graphics"]
 include = ["/Cargo.toml", "/LICENSE", "/README.md", "/src/**"]
 
 [dependencies]
-naga = { version = "28.0", features = ["wgsl-in", "wgsl-out"] }
+naga = { version = "29.0", features = ["wgsl-in", "wgsl-out"] }
 unicode-ident = "1.0"
 
 # Used for main
-clap = { version = "4.5", features = ["cargo"], optional = true }
+clap = { version = "4.6", features = ["cargo"], optional = true }
 codespan-reporting = { version = "0.13", optional = true }
 
 [features]
