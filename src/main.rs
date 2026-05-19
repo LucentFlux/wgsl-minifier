@@ -76,8 +76,10 @@ fn main() {
     let mut module = match naga::front::wgsl::parse_str(&input_shader) {
         Ok(module) => module,
         Err(e) => {
-            e.emit_to_stderr_with_path(&input_file_name, &*input.to_string_lossy());
-            eprintln!("failed to parse shader");
+            eprintln!(
+                "{}\nfailed to parse shader",
+                e.emit_to_string_with_path(&input_file_name, &*input.to_string_lossy())
+            );
             return;
         }
     };
@@ -109,7 +111,8 @@ fn main() {
         let files = SimpleFile::new(input_file_name.as_ref(), &source);
         let config = codespan_reporting::term::Config::default();
         let writer = StandardStream::stderr(ColorChoice::Auto);
-        term::emit(&mut writer.lock(), &config, &files, &diagnostic).expect("cannot write error");
+        term::emit_to_write_style(&mut writer.lock(), &config, &files, &diagnostic)
+            .expect("cannot write error");
     }
 
     // Now minify!

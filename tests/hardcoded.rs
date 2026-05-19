@@ -1,5 +1,7 @@
 use wgsl_minifier::*;
 
+use pretty_assertions::assert_str_eq;
+
 fn minify(input_shader: &str) -> String {
     let mut module = naga::front::wgsl::parse_str(input_shader).unwrap();
 
@@ -47,7 +49,7 @@ fn minify_1() {
 
     let got = minify(src);
 
-    assert_eq!(expected, got);
+    assert_str_eq!(expected, got);
 }
 
 #[test]
@@ -83,5 +85,5 @@ fn minify_2() {
 
     let got = minify(src);
 
-    assert_eq!(expected, got);
+    assert_str_eq!(expected, got);
 }

@@ -116,10 +116,10 @@ fn remove_identifiers(module: &mut naga::Module) {
         global.ty = type_handle_mapping[&global.ty];
     }
     for (_, function) in module.functions.iter_mut() {
-        remove_fn_identifiers(&mut name_counter, function, &type_handle_mapping)
+        remove_fn_identifiers(&mut name_counter, function, &type_handle_mapping);
     }
     for entry in module.entry_points.iter_mut() {
-        remove_fn_identifiers(&mut name_counter, &mut entry.function, &type_handle_mapping)
+        remove_fn_identifiers(&mut name_counter, &mut entry.function, &type_handle_mapping);
     }
 }
 
@@ -130,7 +130,7 @@ fn remove_identifiers(module: &mut naga::Module) {
 /// Does not remove names on entry points, or on constants with overrides.
 pub fn minify_module(module: &mut naga::Module) {
     // Compact
-    naga::compact::compact(module);
+    naga::compact::compact(module, naga::compact::KeepUnused::Yes);
     // Remove any remaining identifiers
     remove_identifiers(module);
 }
@@ -140,6 +140,7 @@ fn is_numeric(c: char) -> bool {
 }
 
 /// Removes all the characters it can in some wgsl sourcecode without joining any keywords or identifiers together.
+#[must_use]
 pub fn minify_wgsl_source(src: &str) -> String {
     let mut src = Cow::<'_, str>::Borrowed(src);
 
@@ -197,19 +198,18 @@ pub fn minify_wgsl_source(src: &str) -> String {
     new_src = String::new();
     let mut to_drop_stack = Vec::new();
     for (i, c) in src.chars().enumerate() {
-        if let Some(outer_end) = parentheses.get(&i) {
-            if let Some(inner_end) = parentheses.get(&(i + 1)) {
-                if *outer_end == *inner_end + 1 {
-                    to_drop_stack.push(*outer_end);
-                    continue;
-                }
-            }
+        if let Some(outer_end) = parentheses.get(&i)
+            && let Some(inner_end) = parentheses.get(&(i + 1))
+            && *outer_end == *inner_end + 1
+        {
+            to_drop_stack.push(*outer_end);
+            continue;
         }
-        if let Some(next_to_skip) = to_drop_stack.last() {
-            if *next_to_skip == i {
-                to_drop_stack.pop();
-                continue;
-            }
+        if let Some(next_to_skip) = to_drop_stack.last()
+            && *next_to_skip == i
+        {
+            to_drop_stack.pop();
+            continue;
         }
         new_src.push(c);
     }
